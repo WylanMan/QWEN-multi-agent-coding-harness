@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "99aa1e9e-51c9-4a7d-859e-77dff8581aa2",
+      "state": "completed",
+      "source": {
+        "kind": "message",
+        "sourceId": "1527343442638671982",
+        "userId": "1265417775296413747",
+        "guildId": "1512804129976877280",
+        "channelId": "1512804130475868252",
+        "threadId": null,
+        "trigger": "followup"
+      },
+      "payload": {
+        "rawText": "Places to go in Paris that is most likely to interest someone like me. I don't want to go bookshop. Recently have been interested in AI. I still am interested in arts and history but only when it's connected to technology. I don't want to go to the Louvre. Maybe something with Leonardo da Vinci, not the Louvre",
+        "promptText": "Discord route: 1512804129976877280__1512804130475868252__root\n\nRequester: Wylan Man (1265417775296413747)\n\nTrigger: followup\n\nGuild: 1512804129976877280\n\nChannel: 1512804130475868252\n\nUser request:\nPlaces to go in Paris that is most likely to interest someone like me. I don't want to go bookshop. Recently have been interested in AI. I still am interested in arts and history but only when it's connected to technology. I don't want to go to the Louvre. Maybe something with Leonardo da Vinci, not the Louvre",
+        "attachments": []
+      }
+    },
+    {
+      "id": "b925fed1-ebe9-4b9a-90da-98a17a3af384",
+      "state": "completed",
+      "source": {
+        "kind": "message",
+        "sourceId": "1527601485519650837",
+        "userId": "1265417775296413747",
+        "guildId": "1512804129976877280",
+        "channelId": "1512804130475868252",
+        "threadId": null,
+        "trigger": "followup"
+      },
+      "payload": {
+        "rawText": "Hi",
+        "promptText": "Discord route: 1512804129976877280__1512804130475868252__root\n\nRequester: Wylan Man (1265417775296413747)\n\nTrigger: followup\n\nGuild: 1512804129976877280\n\nChannel: 1512804130475868252\n\nUser request:\nHi",
+        "attachments": []
+      }
+    }
+  ]
+}

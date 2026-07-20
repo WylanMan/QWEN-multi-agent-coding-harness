@@ -1,0 +1,10 @@
+{
+  "opencode-go": {
+    "type": "api_key",
+    "key": "sk-..."
+  },
+  "qwencloud": {
+    "type": "api_key",
+    "key": "sk-..."
+  }
+}

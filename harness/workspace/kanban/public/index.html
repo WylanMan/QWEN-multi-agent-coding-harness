@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workshop Wall — Kanban</title>
+<style>
+  /* ── Reset & Base ───────────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --wall: #16161C;
+    --surface: #22222E;
+    --surface-hover: #2A2A38;
+    --border: #2F2F3E;
+    --text: #E4E4EC;
+    --text-muted: #8B8B9E;
+    --todo: #FF6B6B;
+    --inprogress: #F9C74F;
+    --done: #43AA8B;
+    --interactive: #7B8CDE;
+    --interactive-hover: #8FA0EE;
+    --danger: #FF6B6B;
+    --radius: 10px;
+    --radius-sm: 6px;
+    --font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  }
+
+  html, body {
+    height: 100%;
+    font-family: var(--font);
+    background: var(--wall);
+    color: var(--text);
+    overflow: hidden;
+  }
+
+  /* ── Name Entry ─────────────────────────────────────────────────────── */
+  #name-entry {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--wall);
+    z-index: 100;
+
+  }
+  #name-entry.hidden { display: none; }
+  #name-entry .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 40px 48px;
+    text-align: center;
+    max-width: 380px;
+    width: 90%;
+    box-shadow: 0 8px 32px rgba(0,0,0,.4);
+  }
+  #name-entry h1 {
+    font-size: 1.6rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--interactive);
+  }
+  #name-entry p {
+    font-size: .9rem;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+  }
+  #name-entry input {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--wall);
+    color: var(--text);
+    font-size: 1rem;
+    outline: none;
+    transition: border-color .2s;
+  }
+  #name-entry input:focus { border-color: var(--interactive); }
+  #name-entry button {
+    margin-top: 16px;
+    padding: 12px 32px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: var(--interactive);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .2s;
+  }
+  #name-entry button:hover { background: var(--interactive-hover); }
+
+  /* ── Board Layout ───────────────────────────────────────────────────── */
+  #app {
+    display: flex;
+    gap: 16px;
+    padding: 20px 24px;
+    height: 100vh;
+    overflow-x: auto;
+    align-items: flex-start;
+  }
+
+  /* ── Column ─────────────────────────────────────────────────────────── */
+  .column {
+    flex: 1;
+    min-width: 280px;
+    max-width: 380px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 40px);
+    position: relative;
+  }
+  .column-header {
+    padding: 16px 16px 12px;
+    border-radius: var(--radius) var(--radius) 0 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .column-header::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 3px;
+    box-shadow: 0 0 8px rgba(0,0,0,.3);
+  }
+  .column[data-column="todo"] .column-header::before { background: var(--todo); }
+  .column[data-column="inprogress"] .column-header::before { background: var(--inprogress); }
+  .column[data-column="done"] .column-header::before { background: var(--done); }
+
+  .column-title {
+    font-size: .85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--text-muted);
+  }
+  .column-count {
+    font-size: .75rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .column-cards {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 12px 12px;
+    min-height: 60px;
+    transition: background .2s, border-color .2s;
+    border: 2px dashed transparent;
+    border-radius: 0 0 var(--radius) var(--radius);
+    margin: 0;
+  }
+  .column-cards.drag-over {
+    background: rgba(123,140,222,.08);
+    border-color: var(--interactive);
+  }
+
+  /* ── Card ───────────────────────────────────────────────────────────── */
+  .card {
+    background: var(--wall);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    cursor: grab;
+    position: relative;
+    transition: transform .15s, box-shadow .15s, opacity .2s;
+    box-shadow: 0 2px 6px rgba(0,0,0,.2);
+    user-select: none;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,.3);
+    border-color: var(--interactive);
+  }
+  .card.dragging {
+    opacity: .4;
+    transform: scale(.97);
+  }
+  .card-title {
+    font-weight: 600;
+    font-size: .95rem;
+    margin-bottom: 4px;
+    padding-right: 24px;
+    word-break: break-word;
+  }
+  .card-preview {
+    font-size: .8rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+    word-break: break-word;
+  }
+  .card-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: .72rem;
+    color: var(--text-muted);
+  }
+  .card-author-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  .card-delete {
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 22px; height: 22px;
+    border: none;
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--text-muted);
+    font-size: .75rem;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    transition: background .15s, color .15s;
+    opacity: .7;
+  }
+  .card-delete:hover {
+    background: var(--danger);
+    color: #fff;
+    opacity: 1;
+  }
+  .card:hover .card-delete { display: flex; }
+
+  /* ── Card Expanded ──────────────────────────────────────────────────── */
+  .card.expanded {
+    cursor: default;
+    border-color: var(--interactive);
+  }
+  .card.expanded:hover {
+    transform: none;
+  }
+  .card-content-rendered {
+    font-size: .85rem;
+    line-height: 1.6;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  .card-content-rendered p { margin-bottom: 6px; }
+  .card-content-rendered strong { font-weight: 700; color: var(--text); }
+  .card-content-rendered em { font-style: italic; }
+  .card-content-rendered code {
+    font-family: var(--mono);
+    background: var(--surface);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: .8em;
+  }
+  .card-content-rendered pre {
+    font-family: var(--mono);
+    background: var(--surface);
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    overflow-x: auto;
+    font-size: .8em;
+    margin: 6px 0;
+  }
+  .card-content-rendered a {
+    color: var(--interactive);
+    text-decoration: underline;
+  }
+  .card-expand-hint {
+    color: var(--text-muted);
+    font-size: .72rem;
+    margin-top: 8px;
+    opacity: .6;
+  }
+
+  /* ── Add Card Button & Form ─────────────────────────────────────────── */
+  .add-card-area {
+    padding: 8px 12px 12px;
+    border-top: 1px solid var(--border);
+  }
+  .add-card-btn {
+    width: 100%;
+    padding: 10px;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: .85rem;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .add-card-btn:hover {
+    border-color: var(--interactive);
+    color: var(--interactive);
+    background: rgba(123,140,222,.06);
+  }
+
+  .card-form {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .card-form.open { display: flex; }
+  .card-form input,
+  .card-form textarea {
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--wall);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: .85rem;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .card-form input:focus,
+  .card-form textarea:focus { border-color: var(--interactive); }
+  .card-form textarea {
+    min-height: 60px;
+    resize: vertical;
+    font-family: var(--font);
+  }
+  .card-form-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .card-form-actions button {
+    flex: 1;
+    padding: 8px;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: .82rem;
+    font-weight: 600;
+    transition: background .15s;
+  }
+  .card-form-save {
+    background: var(--interactive);
+    color: #fff;
+  }
+  .card-form-save:hover { background: var(--interactive-hover); }
+  .card-form-cancel {
+    background: var(--border);
+    color: var(--text);
+  }
+  .card-form-cancel:hover { background: var(--surface-hover); }
+
+  /* ── Presence ───────────────────────────────────────────────────────── */
+  #presence-bar {
+    position: fixed;
+    top: 12px; right: 16px;
+    display: flex;
+    gap: 0;
+    z-index: 50;
+    flex-direction: row-reverse;
+  }
+  .presence-dot {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--wall);
+    margin-left: -6px;
+    cursor: default;
+    transition: transform .15s;
+    position: relative;
+  }
+  .presence-dot:hover {
+    transform: scale(1.15);
+    z-index: 10;
+  }
+  .presence-dot::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface);
+    color: var(--text);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: .72rem;
+    white-space: nowrap;
+    border: 1px solid var(--border);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .15s;
+    margin-top: 4px;
+  }
+  .presence-dot:hover::after { opacity: 1; }
+  .presence-dot.pulse {
+    animation: pulse 0.6s ease-out;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(255,255,255,.4); }
+    70% { box-shadow: 0 0 0 10px rgba(255,255,255,0); }
+    100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+  }
+
+  /* ── Reconnect Banner ───────────────────────────────────────────────── */
+  #reconnect-banner {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    background: rgba(246, 194, 62, .15);
+    border-bottom: 1px solid var(--inprogress);
+    color: var(--inprogress);
+    text-align: center;
+    padding: 8px;
+    font-size: .85rem;
+    font-weight: 600;
+    z-index: 200;
+    backdrop-filter: blur(4px);
+    display: none;
+    letter-spacing: .03em;
+  }
+  #reconnect-banner.show { display: block; }
+
+  /* ── Toast ──────────────────────────────────────────────────────────── */
+  #toast-container {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 300;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 8px;
+    pointer-events: none;
+  }
+  .toast {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 20px;
+    font-size: .85rem;
+    color: var(--text);
+    box-shadow: 0 4px 16px rgba(0,0,0,.4);
+    animation: toastIn 0.25s ease-out;
+    pointer-events: auto;
+    max-width: 400px;
+    text-align: center;
+  }
+  .toast.error { border-color: var(--danger); }
+  .toast.undo { border-color: var(--interactive); }
+  .toast.undo .toast-hint {
+    color: var(--interactive);
+    font-weight: 600;
+  }
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .toast.out {
+    animation: toastOut 0.2s ease-in forwards;
+  }
+  @keyframes toastOut {
+    to { opacity: 0; transform: translateY(-8px); }
+  }
+
+  /* ── Scrollbar ──────────────────────────────────────────────────────── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+  /* ── Markdown preview hint ──────────────────────────────────────────── */
+  .markdown-hint {
+    font-size: .72rem;
+    color: var(--text-muted);
+    opacity: .5;
+    text-align: right;
+  }
+</style>
+</head>
+<body>
+
+<!-- Name Entry Screen -->
+<div id="name-entry">
+  <div class="card">
+    <h1>Workshop Wall</h1>
+    <p>Collaborative Kanban</p>
+    <input id="name-input" type="text" placeholder="Your display name" maxlength="30" autofocus>
+    <button id="name-join">Join Board</button>
+  </div>
+</div>
+
+<!-- Presence Bar -->
+<div id="presence-bar"></div>
+
+<!-- Reconnect Banner -->
+<div id="reconnect-banner">&#9888; Connection lost — Reconnecting automatically...</div>
+
+<!-- Main App Container -->
+<div id="app"></div>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<script>
+/* ===================================================================
+   App — Collaborative Kanban Frontend
+   =================================================================== */
+const App = {};
+
+/* ── App.state ────────────────────────────────────────────────────── */
+App.state = {
+  myId: null,
+  board: { columns: [] },
+  users: [],
+  connected: false,
+  ready: false,
+};
+
+/* ── App.markdown — Hand-rolled markdown renderer (~50 lines) ────── */
+App.markdown = {
+  /**
+   * Render markdown text to HTML.
+   * Supports: **bold**, *italic*, `inline code`, ```code blocks```, [links](url).
+   * @param {string} text
+   * @returns {string}
+   */
+  render(text) {
+    if (!text) return '';
+    // Escape HTML entities first
+    let html = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    // Code blocks (```...```) — must handle before inline code
+    html = html.replace(/```([\s\S]*?)```/g, (_, code) => {
+      return '<pre><code>' + code.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</code></pre>';
+    });
+
+    // Inline code (`...`)
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+    // Links [text](url)
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+
+    // Bold **text**
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+    // Italic *text*
+    html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+    // Headings (h3→h2→h1 order matters)
+    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+    html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+    // Horizontal rule
+    html = html.replace(/^---$/gm, '<hr>');
+
+    // Blockquotes (after HTML escaping, > has become &gt;)
+    html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+
+    // Unordered lists — convert - or * items to <li>
+    html = html.replace(/^[\-\*] (.+)$/gm, '<li>$1</li>');
+    html = html.replace(/((?:<li>.*?<\/li>\n?)+)/g, '<ul>$1</ul>');
+
+    // Double line breaks = paragraphs
+    html = html.replace(/\n\n+/g, '</p><p>');
+
+    // Single line breaks
+    html = html.replace(/\n/g, '<br>');
+
+    // Wrap in paragraphs if there are any block-level tags
+    if (html.includes('</p>')) {
+      html = '<p>' + html + '</p>';
+    }
+
+    return html;
+  },
+
+  /**
+   * Strip markdown to plain text, truncated.
+   * @param {string} text
+   * @param {number} maxLen
+   * @returns {string}
+   */
+  plain(text, maxLen) {
+    if (!text) return '';
+    let plain = text
+      .replace(/```[\s\S]*?```/g, '')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/\*([^*]+)\*/g, '$1')
+      .replace(/^#{1,3} /gm, '')
+      .replace(/^[\-\*] /gm, '')
+      .replace(/^> /gm, '')
+      .replace(/^---$/gm, '')
+      .replace(/\n+/g, ' ');
+    if (plain.length > maxLen) plain = plain.slice(0, maxLen) + '…';
+    return plain;
+  }
+};
+
+/* ── App.ws — WebSocket client with auto-reconnect ───────────────── */
+App.ws = {
+  /** @type {WebSocket|null} */
+  socket: null,
+  reconnectDelay: 1000,
+  maxReconnectDelay: 16000,
+  reconnectTimer: null,
+  intentionalClose: false,
+
+  /**
+   * Connect to the WebSocket server.
+   */
+  connect() {
+    // Guard against double-connection
+    if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) return;
+    if (this.socket) {
+      this.intentionalClose = true;
+      this.socket.close();
+      this.socket = null;
+    }
+    this.intentionalClose = false;
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const url = protocol + '//' + location.host;
+    this.socket = new WebSocket(url);
+
+    this.socket.onopen = () => {
+      App.state.connected = true;
+      this.reconnectDelay = 1000;
+      document.getElementById('reconnect-banner').classList.remove('show');
+
+      // Identify with stored name
+      const name = localStorage.getItem('kanban_name') || 'Anonymous';
+      this.send({ type: 'identify', name });
+    };
+
+    this.socket.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        App.handlers.handle(msg);
+      } catch (e) {
+        console.error('Invalid message:', e);
+      }
+    };
+
+    this.socket.onclose = () => {
+      App.state.connected = false;
+      if (!this.intentionalClose) {
+        document.getElementById('reconnect-banner').classList.add('show');
+        this.scheduleReconnect();
+      }
+    };
+
+    this.socket.onerror = () => {
+      // onclose will fire afterwards
+    };
+  },
+
+  /**
+   * Schedule a reconnection attempt with exponential backoff.
+   */
+  scheduleReconnect() {
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = setTimeout(() => {
+      if (!App.state.connected) {
+        console.log('Reconnecting... delay=' + this.reconnectDelay + 'ms');
+        this.connect();
+        this.reconnectDelay = Math.min(this.reconnectDelay * 2, this.maxReconnectDelay);
+      }
+    }, this.reconnectDelay);
+  },
+
+  /**
+   * Disconnect intentionally (no reconnect).
+   */
+  disconnect() {
+    this.intentionalClose = true;
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    if (this.socket) this.socket.close();
+  },
+
+  /**
+   * Send a JSON message.
+   * @param {object} data
+   */
+  send(data) {
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      this.socket.send(JSON.stringify(data));
+    }
+  }
+};
+
+/* ── App.presence — User presence indicators ─────────────────────── */
+App.presence = {
+  /**
+   * Render presence circles in the top-right bar.
+   */
+  render() {
+    const bar = document.getElementById('presence-bar');
+    bar.innerHTML = '';
+    for (const user of App.state.users) {
+      const dot = document.createElement('div');
+      dot.className = 'presence-dot';
+      dot.style.background = user.color;
+      dot.dataset.tooltip = user.name;
+      bar.appendChild(dot);
+    }
+  },
+
+  /**
+   * Pulse animation for a user who just joined or performed an action.
+   * @param {string} userId
+   */
+  pulse(userId) {
+    const bar = document.getElementById('presence-bar');
+    const dots = bar.querySelectorAll('.presence-dot');
+    // Find the nth index of this user
+    const idx = App.state.users.findIndex(u => u.id === userId);
+    if (idx >= 0 && dots[idx]) {
+      dots[idx].classList.remove('pulse');
+      // Force reflow
+      void dots[idx].offsetWidth;
+      dots[idx].classList.add('pulse');
+    }
+  }
+};
+
+/* ── App.renderer — Board rendering ──────────────────────────────── */
+App.renderer = {
+  /**
+   * Full render of the board into #app.
+   */
+  render() {
+    const app = document.getElementById('app');
+    app.innerHTML = '';
+    for (const col of App.state.board.columns) {
+      const colEl = this.renderColumn(col);
+      app.appendChild(colEl);
+    }
+  },
+
+  /**
+   * Render a single column element.
+   * @param {{ id:string, name:string, cards:Array }} col
+   * @returns {HTMLElement}
+   */
+  renderColumn(col) {
+    const el = document.createElement('div');
+    el.className = 'column';
+    el.dataset.column = col.id;
+
+    // Header
+    const hdr = document.createElement('div');
+    hdr.className = 'column-header';
+    hdr.innerHTML = `<div class="column-title">${this.esc(col.name)}</div>
+      <div class="column-count">${col.cards.length} card${col.cards.length !== 1 ? 's' : ''}</div>`;
+    el.appendChild(hdr);
+
+    // Cards container (drop target)
+    const cardsEl = document.createElement('div');
+    cardsEl.className = 'column-cards';
+    cardsEl.dataset.column = col.id;
+
+    for (const card of col.cards) {
+      cardsEl.appendChild(this.renderCard(card));
+    }
+
+    // Drag-and-drop event handlers
+    cardsEl.addEventListener('dragover', App.dragdrop.onDragOver);
+    cardsEl.addEventListener('dragleave', App.dragdrop.onDragLeave);
+    cardsEl.addEventListener('drop', App.dragdrop.onDrop);
+
+    el.appendChild(cardsEl);
+
+    // Add card area
+    const addArea = document.createElement('div');
+    addArea.className = 'add-card-area';
+    addArea.innerHTML = `<button class="add-card-btn" data-column="${this.esc(col.id)}">+ Add Card</button>
+      <div class="card-form" data-column="${this.esc(col.id)}">
+        <input type="text" placeholder="Card title" maxlength="100" class="card-form-title">
+        <textarea placeholder="Description (supports **bold**, *italic*, \`code\`, [links](url))" class="card-form-content" rows="2"></textarea>
+        <div class="markdown-hint">Markdown supported</div>
+        <div class="card-form-actions">
+          <button class="card-form-save" data-column="${this.esc(col.id)}">Save</button>
+          <button class="card-form-cancel">Cancel</button>
+        </div>
+      </div>`;
+    el.appendChild(addArea);
+
+    return el;
+  },
+
+  /**
+   * Render a single card element.
+   * @param {{ id:string, title:string, content:string, authorId:string, authorName:string, createdAt:string }} card
+   * @returns {HTMLElement}
+   */
+  renderCard(card) {
+    const authorColor = this.getUserColor(card.authorId) || '#888';
+
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.draggable = true;
+    el.dataset.cardId = card.id;
+
+    const preview = App.markdown.plain(card.content, 80);
+
+    el.innerHTML = `
+      <button class="card-delete" data-card-id="${this.esc(card.id)}" title="Delete card">&times;</button>
+      <div class="card-title">${this.esc(card.title)}</div>
+      ${preview ? `<div class="card-preview">${this.esc(preview)}</div>` : ''}
+      <div class="card-meta">
+        <span class="card-author-dot" style="background:${authorColor}"></span>
+        <span>${this.esc(card.authorName)}</span>
+        <span>·</span>
+        <span>${this.timeAgo(card.createdAt)}</span>
+      </div>
+      ${card.content ? '<div class="card-expand-hint">click to expand</div>' : ''}
+    `;
+
+    // Drag handlers
+    el.addEventListener('dragstart', App.dragdrop.onDragStart);
+    el.addEventListener('dragend', App.dragdrop.onDragEnd);
+
+    // Click to expand
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('.card-delete')) return;
+      App.handlers.toggleExpand(card.id);
+    });
+
+    return el;
+  },
+
+  /**
+   * Toggle expanded state of a card (inline).
+   * @param {string} cardId
+   */
+  toggleExpand(cardId) {
+    const cardEl = document.querySelector(`.card[data-card-id="${cardId}"]`);
+    if (!cardEl) return;
+    if (cardEl.classList.contains('expanded')) {
+      cardEl.classList.remove('expanded');
+      const rendered = cardEl.querySelector('.card-content-rendered');
+      if (rendered) rendered.remove();
+      const hint = cardEl.querySelector('.card-expand-hint');
+      if (hint) hint.style.display = '';
+      return;
+    }
+
+    // Collapse any other expanded card
+    document.querySelectorAll('.card.expanded').forEach(el => {
+      el.classList.remove('expanded');
+      const r = el.querySelector('.card-content-rendered');
+      if (r) r.remove();
+      const h = el.querySelector('.card-expand-hint');
+      if (h) h.style.display = '';
+    });
+
+    const card = this.findCard(cardId);
+    if (!card) return;
+
+    cardEl.classList.add('expanded');
+    const rendered = document.createElement('div');
+    rendered.className = 'card-content-rendered';
+    rendered.innerHTML = App.markdown.render(card.content);
+    cardEl.appendChild(rendered);
+
+    const hint = cardEl.querySelector('.card-expand-hint');
+    if (hint) hint.style.display = 'none';
+  },
+
+  /**
+   * Update column card counts without full re-render.
+   * @param {string} columnId
+   */
+  updateColumnCount(columnId) {
+    const col = App.state.board.columns.find(c => c.id === columnId);
+    if (!col) return;
+    const el = document.querySelector(`.column[data-column="${columnId}"] .column-count`);
+    if (el) el.textContent = col.cards.length + ' card' + (col.cards.length !== 1 ? 's' : '');
+  },
+
+  /**
+   * Find a card by ID in state.
+   * @param {string} cardId
+   * @returns {object|null}
+   */
+  findCard(cardId) {
+    for (const col of App.state.board.columns) {
+      const card = col.cards.find(c => c.id === cardId);
+      if (card) return card;
+    }
+    return null;
+  },
+
+  /**
+   * Add a card element to a column (used for cardCreated).
+   * @param {object} card
+   */
+  addCardElement(card) {
+    const colEl = document.querySelector(`.column[data-column="${card.columnId}"] .column-cards`);
+    if (!colEl) return;
+    const cardEl = this.renderCard(card);
+    colEl.appendChild(cardEl);
+    this.updateColumnCount(card.columnId);
+  },
+
+  /**
+   * Remove a card element from the DOM.
+   * @param {string} cardId
+   */
+  removeCardElement(cardId) {
+    const el = document.querySelector(`.card[data-card-id="${cardId}"]`);
+    if (!el) return;
+    const colEl = el.closest('.column-cards');
+    el.remove();
+    if (colEl) {
+      const colId = colEl.dataset.column;
+      this.updateColumnCount(colId);
+    }
+  },
+
+  /**
+   * Get the user color for a given author ID.
+   * @param {string} authorId
+   * @returns {string|null}
+   */
+  getUserColor(authorId) {
+    const user = App.state.users.find(u => u.id === authorId);
+    return user ? user.color : null;
+  },
+
+  /**
+   * HTML-escape a string.
+   * @param {string} s
+   * @returns {string}
+   */
+  esc(s) {
+    const div = document.createElement('div');
+    div.appendChild(document.createTextNode(s));
+    return div.innerHTML;
+  },
+
+  /**
+   * Format a timestamp as relative time.
+   * @param {string} iso
+   * @returns {string}
+   */
+  timeAgo(iso) {
+    const diff = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return mins + 'm ago';
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return hrs + 'h ago';
+    const days = Math.floor(hrs / 24);
+    return days + 'd ago';
+  }
+};
+
+/* ── App.dragdrop — HTML5 Drag & Drop ────────────────────────────── */
+App.dragdrop = {
+  /** @type {string|null} */
+  draggedCardId: null,
+
+  /**
+   * Handle dragstart on a card.
+   * @param {DragEvent} e
+   */
+  onDragStart(e) {
+    const cardEl = e.target.closest('.card');
+    if (!cardEl) return;
+    this.draggedCardId = cardEl.dataset.cardId;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', this.draggedCardId);
+    cardEl.classList.add('dragging');
+  },
+
+  /**
+   * Handle dragend on a card (cleanup).
+   * @param {DragEvent} e
+   */
+  onDragEnd(e) {
+    const cardEl = e.target.closest('.card');
+    if (cardEl) cardEl.classList.remove('dragging');
+    document.querySelectorAll('.column-cards').forEach(el => el.classList.remove('drag-over'));
+    this.draggedCardId = null;
+  },
+
+  /**
+   * Handle dragover on a column cards container.
+   * @param {DragEvent} e
+   */
+  onDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const cardsEl = e.target.closest('.column-cards');
+    if (cardsEl) cardsEl.classList.add('drag-over');
+  },
+
+  /**
+   * Handle dragleave on a column cards container.
+   * @param {DragEvent} e
+   */
+  onDragLeave(e) {
+    const cardsEl = e.target.closest('.column-cards');
+    if (cardsEl && !cardsEl.contains(e.relatedTarget)) {
+      cardsEl.classList.remove('drag-over');
+    }
+  },
+
+  /**
+   * Handle drop on a column cards container.
+   * @param {DragEvent} e
+   */
+  onDrop(e) {
+    e.preventDefault();
+    const cardsEl = e.target.closest('.column-cards');
+    if (!cardsEl) return;
+
+    cardsEl.classList.remove('drag-over');
+    const toColumnId = cardsEl.dataset.column;
+    const cardId = e.dataTransfer.getData('text/plain');
+
+    if (!cardId || !toColumnId) return;
+    if (!App.state.connected) {
+      App.toast.show('Cannot move: not connected', 'error');
+      return;
+    }
+
+    // Find source column
+    let fromColumnId = null;
+    for (const col of App.state.board.columns) {
+      if (col.cards.some(c => c.id === cardId)) {
+        fromColumnId = col.id;
+        break;
+      }
+    }
+
+    if (fromColumnId === toColumnId) return;
+
+    // Optimistic UI update: move the card immediately
+    let card = null;
+    for (const col of App.state.board.columns) {
+      const idx = col.cards.findIndex(c => c.id === cardId);
+      if (idx >= 0) {
+        card = col.cards.splice(idx, 1)[0];
+        break;
+      }
+    }
+    if (card) {
+      card.columnId = toColumnId;
+      const targetCol = App.state.board.columns.find(c => c.id === toColumnId);
+      if (targetCol) {
+        targetCol.cards.push(card);
+      }
+      App.renderer.render();
+    }
+
+    App.ws.send({ type: 'moveCard', cardId, toColumnId });
+  }
+};
+
+/* ── App.handlers — Event delegation & message handling ──────────── */
+App.handlers = {
+  /**
+   * Handle incoming WebSocket messages.
+   * @param {object} msg
+   */
+  handle(msg) {
+    switch (msg.type) {
+      case 'init': {
+        App.state.myId = msg.yourId;
+        App.state.board = msg.board;
+        App.state.users = msg.users;
+        App.state.ready = true;
+        App.renderer.render();
+        App.presence.render();
+        // Dispatch a custom event so name-entry can hide
+        document.dispatchEvent(new CustomEvent('app:ready'));
+        break;
+      }
+
+      case 'cardCreated': {
+        const card = msg.card;
+        // Add to state
+        const col = App.state.board.columns.find(c => c.id === card.columnId);
+        if (col) {
+          col.cards.push(card);
+          App.renderer.addCardElement(card);
+        }
+        break;
+      }
+
+      case 'cardMoved': {
+        // If we are the sender, the optimistic update already moved the card.
+        // Check if the card is already in the target column to skip redundant work.
+        const targetColPre = App.state.board.columns.find(c => c.id === msg.toColumnId);
+        if (targetColPre && targetColPre.cards.some(c => c.id === msg.cardId)) {
+          // Already in target – nothing to do (optimistic update beat the broadcast)
+          break;
+        }
+
+        // Remove from source column in state
+        let card = null;
+        for (const col of App.state.board.columns) {
+          const idx = col.cards.findIndex(c => c.id === msg.cardId);
+          if (idx >= 0) {
+            card = col.cards.splice(idx, 1)[0];
+            break;
+          }
+        }
+        if (!card) return;
+
+        // Update columnId
+        card.columnId = msg.toColumnId;
+
+        // Add to target column
+        const targetCol = App.state.board.columns.find(c => c.id === msg.toColumnId);
+        if (targetCol) {
+          targetCol.cards.push(card);
+        }
+
+        // Re-render affected columns
+        App.renderer.render();
+        break;
+      }
+
+      case 'cardDeleted': {
+        for (const col of App.state.board.columns) {
+          const idx = col.cards.findIndex(c => c.id === msg.cardId);
+          if (idx >= 0) {
+            col.cards.splice(idx, 1);
+            break;
+          }
+        }
+        App.renderer.removeCardElement(msg.cardId);
+        break;
+      }
+
+      case 'undoApplied': {
+        // State is already updated by the accompanying cardCreated / cardMoved /
+        // cardDeleted broadcast that the server sends before undoApplied.
+        // Just re-render (defensive no-op) and show the toast.
+        App.renderer.render();
+        App.toast.show('Undo applied', 'undo');
+        break;
+      }
+
+      case 'userJoined': {
+        const user = msg.user;
+        // Don't add duplicates
+        if (!App.state.users.some(u => u.id === user.id)) {
+          App.state.users.push(user);
+          App.presence.render();
+          App.presence.pulse(user.id);
+        }
+        break;
+      }
+
+      case 'userLeft': {
+        App.state.users = App.state.users.filter(u => u.id !== msg.userId);
+        App.presence.render();
+        break;
+      }
+
+      case 'error': {
+        App.toast.show(msg.message || 'Server error', 'error');
+        break;
+      }
+    }
+  },
+
+  /**
+   * Toggle card expansion.
+   * @param {string} cardId
+   */
+  toggleExpand(cardId) {
+    App.renderer.toggleExpand(cardId);
+  },
+
+  /**
+   * Show the add-card form for a column.
+   * @param {string} columnId
+   */
+  showForm(columnId) {
+    const addArea = document.querySelector(`.column[data-column="${columnId}"] .add-card-area`);
+    if (!addArea) return;
+    const btn = addArea.querySelector('.add-card-btn');
+    const form = addArea.querySelector('.card-form');
+    if (btn) btn.style.display = 'none';
+    if (form) {
+      form.classList.add('open');
+      const input = form.querySelector('.card-form-title');
+      if (input) setTimeout(() => input.focus(), 50);
+    }
+  },
+
+  /**
+   * Hide the add-card form for a column.
+   * @param {string} columnId
+   */
+  hideForm(columnId) {
+    const addArea = document.querySelector(`.column[data-column="${columnId}"] .add-card-area`);
+    if (!addArea) return;
+    const btn = addArea.querySelector('.add-card-btn');
+    const form = addArea.querySelector('.card-form');
+    if (btn) btn.style.display = '';
+    if (form) {
+      form.classList.remove('open');
+      form.querySelector('.card-form-title').value = '';
+      form.querySelector('.card-form-content').value = '';
+    }
+  },
+
+  /**
+   * Save a card from the form.
+   * @param {string} columnId
+   */
+  saveCard(columnId) {
+    const addArea = document.querySelector(`.column[data-column="${columnId}"] .add-card-area`);
+    if (!addArea) return;
+    const form = addArea.querySelector('.card-form');
+    if (!form) return;
+
+    const title = form.querySelector('.card-form-title').value.trim();
+    const content = form.querySelector('.card-form-content').value;
+
+    if (!App.state.connected) {
+      App.toast.show('Cannot create card: not connected', 'error');
+      return;
+    }
+
+    App.ws.send({ type: 'createCard', columnId, title, content });
+    this.hideForm(columnId);
+  }
+};
+
+/* ── App.toast — Toast notifications ─────────────────────────────── */
+App.toast = {
+  /**
+   * Show a toast notification.
+   * @param {string} message
+   * @param {string} [type] - 'error', 'undo', or empty
+   * @param {number} [duration]
+   */
+  show(message, type, duration) {
+    duration = duration || 3000;
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'toast' + (type ? ' ' + type : '');
+    toast.textContent = message;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+      toast.classList.add('out');
+      setTimeout(() => toast.remove(), 200);
+    }, duration);
+  }
+};
+
+/* ── Event Delegation ────────────────────────────────────────────── */
+document.addEventListener('click', (e) => {
+  // Add Card button
+  const addBtn = e.target.closest('.add-card-btn');
+  if (addBtn) {
+    e.preventDefault();
+    App.handlers.showForm(addBtn.dataset.column);
+    return;
+  }
+
+  // Save card
+  const saveBtn = e.target.closest('.card-form-save');
+  if (saveBtn) {
+    e.preventDefault();
+    App.handlers.saveCard(saveBtn.dataset.column);
+    return;
+  }
+
+  // Cancel card form
+  const cancelBtn = e.target.closest('.card-form-cancel');
+  if (cancelBtn) {
+    e.preventDefault();
+    const form = cancelBtn.closest('.card-form');
+    if (form) {
+      const colId = form.dataset.column;
+      App.handlers.hideForm(colId);
+    }
+    return;
+  }
+
+  // Delete card
+  const delBtn = e.target.closest('.card-delete');
+  if (delBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    const cardId = delBtn.dataset.cardId;
+    if (!App.state.connected) {
+      App.toast.show('Cannot delete: not connected', 'error');
+      return;
+    }
+    App.ws.send({ type: 'deleteCard', cardId });
+    App.toast.show('Card deleted — Undo (Ctrl+Z)', 'undo', 4000);
+    return;
+  }
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  // Ctrl+Z — Undo
+  if (e.ctrlKey && e.key === 'z' && !e.target.closest('input, textarea')) {
+    e.preventDefault();
+    if (!App.state.connected) {
+      App.toast.show('Cannot undo: not connected', 'error');
+      return;
+    }
+    App.ws.send({ type: 'undo' });
+    return;
+  }
+
+  // Escape — collapse expanded card
+  if (e.key === 'Escape') {
+    const expanded = document.querySelector('.card.expanded');
+    if (expanded) {
+      const cardId = expanded.dataset.cardId;
+      App.renderer.toggleExpand(cardId);
+    }
+    return;
+  }
+});
+
+// Form submit on Enter in title field
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target.closest('.card-form-title')) {
+    e.preventDefault();
+    const form = e.target.closest('.card-form');
+    if (form) {
+      const colId = form.dataset.column;
+      App.handlers.saveCard(colId);
+    }
+  }
+});
+
+// ── Name Entry ─────────────────────────────────────────────────────
+(function initNameEntry() {
+  const entry = document.getElementById('name-entry');
+  const input = document.getElementById('name-input');
+  const joinBtn = document.getElementById('name-join');
+
+  // Restore stored name
+  const stored = localStorage.getItem('kanban_name');
+  if (stored) input.value = stored;
+
+  function join() {
+    const name = input.value.trim() || 'Anonymous';
+    localStorage.setItem('kanban_name', name);
+    App.ws.connect();
+  }
+
+  joinBtn.addEventListener('click', join);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') join();
+  });
+
+  // Hide name entry when app is ready
+  document.addEventListener('app:ready', () => {
+    entry.classList.add('hidden');
+  });
+})();
+
+// ── Init — show name entry, connection starts after joining ────────
+</script>
+</body>
+</html>

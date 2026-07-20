@@ -1,0 +1,2 @@
+{"timestamp":"2026-07-20T18:19:46.178Z","agent":"runner","action":"run_started","phase":"classifying","task_id":"harness-1784571586","payload":{"goal":"test"}}
+{"timestamp":"2026-07-20T18:19:46.179Z","agent":"manager","action":"classify","phase":"classifying","task_id":"harness-1784571586","payload":{"goal":"test"}}

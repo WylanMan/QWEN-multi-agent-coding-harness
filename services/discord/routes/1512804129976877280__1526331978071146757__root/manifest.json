@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "routeKey": "1512804129976877280__1526331978071146757__root",
+  "scope": {
+    "guildId": "1512804129976877280",
+    "channelId": "1526331978071146757",
+    "threadId": null
+  },
+  "workspaceMode": "dedicated",
+  "executionRoot": "/home/cman/.pi/agent/pi-discord/workspaces/1512804129976877280__1526331978071146757__root",
+  "memoryPath": "/home/cman/.pi/agent/pi-discord/workspaces/1512804129976877280__1526331978071146757__root/discord-memory.md",
+  "sessionFile": "/home/cman/.pi/agent/pi-discord/routes/1512804129976877280__1526331978071146757__root/sessions/2026-07-16T15-11-33-088Z_bb6a3783-1ae7-455c-90a3-5bb7dea47273.jsonl"
+}

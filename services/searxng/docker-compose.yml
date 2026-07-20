@@ -1,0 +1,28 @@
+services:
+  searxng:
+    image: searxng/searxng:latest
+    container_name: pi-searxng
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8888:8080"
+    volumes:
+      - ./data:/etc/searxng:rw
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8888/
+      - SEARXNG_SECRET_KEY=${SEARXNG_SECRET_KEY}
+      # Disable the rate limiter for local use
+      - SEARXNG_SERVER__LIMITER=false
+      # Allow JSON API without X-Forwarded-For
+      - SEARXNG_SERVER__BIND_ADDRESS=0.0.0.0
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      - DAC_OVERRIDE
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+        max-file: "1"

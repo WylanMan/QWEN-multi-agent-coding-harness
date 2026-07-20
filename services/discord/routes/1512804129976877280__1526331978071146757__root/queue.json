@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "d8acbfd3-e795-4528-b91b-751a19160e16",
+      "state": "completed",
+      "source": {
+        "kind": "message",
+        "sourceId": "1527331864568926449",
+        "userId": "1265417775296413747",
+        "guildId": "1512804129976877280",
+        "channelId": "1526331978071146757",
+        "threadId": null,
+        "trigger": "mention"
+      },
+      "payload": {
+        "rawText": "hello",
+        "promptText": "Discord route: 1512804129976877280__1526331978071146757__root\n\nRequester: Wylan Man (1265417775296413747)\n\nTrigger: mention\n\nGuild: 1512804129976877280\n\nChannel: 1526331978071146757\n\nUser request:\nhello",
+        "attachments": []
+      }
+    },
+    {
+      "id": "fa2e48f1-c5c6-4278-a4de-c659148afcac",
+      "state": "completed",
+      "source": {
+        "kind": "message",
+        "sourceId": "1527331896927850648",
+        "userId": "1265417775296413747",
+        "guildId": "1512804129976877280",
+        "channelId": "1526331978071146757",
+        "threadId": null,
+        "trigger": "followup"
+      },
+      "payload": {
+        "rawText": "What are you?",
+        "promptText": "Discord route: 1512804129976877280__1526331978071146757__root\n\nRequester: Wylan Man (1265417775296413747)\n\nTrigger: followup\n\nGuild: 1512804129976877280\n\nChannel: 1526331978071146757\n\nUser request:\nWhat are you?",
+        "attachments": []
+      }
+    },
+    {
+      "id": "b176242c-ad9a-4f07-b3a6-35251e81071f",
+      "state": "completed",
+      "source": {
+        "kind": "message",
+        "sourceId": "1527333670212472872",
+        "userId": "1265417775296413747",
+        "guildId": "1512804129976877280",
+        "channelId": "1526331978071146757",
+        "threadId": null,
+        "trigger": "followup"
+      },
+      "payload": {
+        "rawText": "Hi bro",
+        "promptText": "Discord route: 1512804129976877280__1526331978071146757__root\n\nRequester: Wylan Man (1265417775296413747)\n\nTrigger: followup\n\nGuild: 1512804129976877280\n\nChannel: 1526331978071146757\n\nUser request:\nHi bro",
+        "attachments": []
+      }
+    },
+    {
+      "id": "00b88469-e5d1-4aac-b9fe-272697096c6a",
+      "state": "completed",
+      "source": {
+        "kind": "message",
+        "sourceId": "1527333714407981146",
+        "userId": "1265417775296413747",
+        "guildId": "1512804129976877280",
+        "channelId": "1526331978071146757",
+        "threadId": null,
+        "trigger": "followup"
+      },
+      "payload": {
+        "rawText": "What can you doM",
+        "promptText": "Discord route: 1512804129976877280__1526331978071146757__root\n\nRequester: Wylan Man (1265417775296413747)\n\nTrigger: followup\n\nGuild: 1512804129976877280\n\nChannel: 1526331978071146757\n\nUser request:\nWhat can you doM",
+        "attachments": []
+      }
+    },
+    {
+      "id": "0b039f2d-7fff-447b-a4dd-5d6446e1fda2",
+      "state": "completed",
+      "source": {
+        "kind": "message",
+        "sourceId": "1527333821287104523",
+        "userId": "1265417775296413747",
+        "guildId": "1512804129976877280",
+        "channelId": "1526331978071146757",
+        "threadId": null,
+        "trigger": "followup"
+      },
+      "payload": {
+        "rawText": "I want to convert you to a general purpose agent. How can I do that?",
+        "promptText": "Discord route: 1512804129976877280__1526331978071146757__root\n\nRequester: Wylan Man (1265417775296413747)\n\nTrigger: followup\n\nGuild: 1512804129976877280\n\nChannel: 1526331978071146757\n\nUser request:\nI want to convert you to a general purpose agent. How can I do that?",
+        "attachments": []
+      }
+    }
+  ]
+}

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Architecture Diagram — Multi-Agent Harness</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #root { width: 100%; height: 100%; overflow: hidden; background: #121212; }
+    body { font-family: system-ui, -apple-system, sans-serif; }
+
+    /* Loading state */
+    #loading {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      color: #ccc; background: #121212;
+      z-index: 1000; gap: 16px;
+      transition: opacity 0.4s ease;
+    }
+    #loading.hidden { opacity: 0; pointer-events: none; }
+    #loading .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid #333; border-top-color: #5c7cfa;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loading .hint { font-size: 14px; color: #666; }
+
+    /* Error state */
+    #error {
+      position: fixed; inset: 0;
+      display: none; flex-direction: column;
+      align-items: center; justify-content: center;
+      color: #e06c75; background: #121212;
+      z-index: 1000; gap: 12px; padding: 32px;
+    }
+    #error.visible { display: flex; }
+    #error h2 { font-size: 20px; font-weight: 600; }
+    #error p { color: #999; font-size: 14px; text-align: center; max-width: 480px; }
+    #error .fallback-link { margin-top: 8px; }
+    #error .fallback-link a { color: #5c7cfa; text-decoration: none; font-weight: 600; }
+    #error .fallback-link a:hover { text-decoration: underline; }
+
+    /* Excalidraw overrides for clean fullscreen view */
+    .excalidraw .App-menu { display: none !important; }
+    .excalidraw .Island { display: none !important; }
+    .excalidraw .ToolIcon { display: none !important; }
+    .excalidraw .layer-ui__wrapper { display: none !important; }
+    /* Keep only the canvas visible */
+    .excalidraw .excalidraw-appearance-section { display: none !important; }
+
+    /* Loading bar at top during render */
+    #progress-bar {
+      position: fixed; top: 0; left: 0; height: 3px;
+      background: linear-gradient(90deg, #5c7cfa, #7c9cff);
+      z-index: 999;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+  </style>
+</head>
+<body>
+  <div id="progress-bar"></div>
+
+  <div id="loading">
+    <div class="spinner"></div>
+    <div class="hint">Loading architecture diagram…</div>
+  </div>
+
+  <div id="error">
+    <h2>⚠️ Failed to load diagram</h2>
+    <p id="error-message">Could not load the architecture diagram.</p>
+    <div class="fallback-link">
+      <a href="architecture.excalidraw" download>📥 Download the diagram file</a>
+      &nbsp;— then open at <a href="https://excalidraw.com" target="_blank">excalidraw.com</a>
+    </div>
+  </div>
+
+  <div id="root"></div>
+
+  <!-- Load React and ReactDOM -->
+  <script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+
+  <!-- Load Excalidraw UMD bundle (includes CSS) -->
+  <script src="https://cdn.jsdelivr.net/npm/@excalidraw/excalidraw@latest/dist/excalidraw.min.js"></script>
+
+  <script>
+  (async function() {
+    const loadingEl = document.getElementById('loading');
+    const errorEl = document.getElementById('error');
+    const errorMsg = document.getElementById('error-message');
+    const progressBar = document.getElementById('progress-bar');
+
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorEl.classList.add('visible');
+      loadingEl.classList.add('hidden');
+    }
+
+    function setProgress(pct) {
+      progressBar.style.width = pct + '%';
+    }
+
+    try {
+      setProgress(10);
+
+      // Wait for Excalidraw to be available
+      if (typeof window.Excalidraw === 'undefined') {
+        // Try waiting a bit for the bundle to initialize
+        await new Promise((resolve, reject) => {
+          let waited = 0;
+          const check = () => {
+            if (typeof window.Excalidraw !== 'undefined') return resolve();
+            waited += 50;
+            if (waited > 10000) return reject(new Error('Excalidraw failed to load'));
+            setTimeout(check, 50);
+          };
+          check();
+        });
+      }
+
+      setProgress(30);
+      const ExcalidrawComponent = window.Excalidraw.default || window.Excalidraw;
+
+      // Fetch the architecture.excalidraw file
+      const resp = await fetch('architecture.excalidraw');
+      if (!resp.ok) throw new Error(`Failed to fetch architecture.excalidraw (HTTP ${resp.status})`);
+      setProgress(50);
+
+      const data = await resp.json();
+
+      // Validate basic structure
+      if (!data || data.type !== 'excalidraw' || !Array.isArray(data.elements)) {
+        throw new Error('Invalid .excalidraw file format');
+      }
+
+      setProgress(70);
+
+      const initialData = {
+        elements: data.elements,
+        appState: {
+          ...data.appState,
+          viewBackgroundColor: data.appState?.viewBackgroundColor || '#121212',
+          theme: 'dark',
+          gridModeEnabled: false,
+          zenModeEnabled: true,
+          viewModeEnabled: true,
+        },
+        scrollToContent: true,
+      };
+
+      // Hide loading spinner
+      loadingEl.classList.add('hidden');
+      setProgress(90);
+
+      // Render the Excalidraw component
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(
+        React.createElement(ExcalidrawComponent, {
+          initialData: initialData,
+          viewModeEnabled: true,
+          zenModeEnabled: true,
+          theme: 'dark',
+          UIOptions: {
+            canvasActions: {
+              changeViewBackgroundColor: false,
+              clearCanvas: false,
+              export: false,
+              loadScene: false,
+              saveAsImage: false,
+              saveToDisk: false,
+              theme: false,
+            },
+          },
+          onPointerUpdate: () => {},
+        })
+      );
+
+      setProgress(100);
+      setTimeout(() => { progressBar.style.opacity = '0'; }, 600);
+
+    } catch (err) {
+      console.error('Viewer error:', err);
+      showError(err.message || 'Unknown error occurred');
+    }
+  })();
+  </script>
+</body>
+</html>

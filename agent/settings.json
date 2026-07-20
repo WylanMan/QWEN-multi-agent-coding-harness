@@ -1,0 +1,12 @@
+{
+  "lastChangelogVersion": "0.80.7",
+  "theme": "dark",
+  "defaultProvider": "qwencloud",
+  "defaultModel": "qwen-plus",
+  "defaultThinkingLevel": "high",
+  "enableInstallTelemetry": false,
+  "packages": [
+    "npm:pi-discord",
+    "npm:pi-agent-browser-native"
+  ]
+}

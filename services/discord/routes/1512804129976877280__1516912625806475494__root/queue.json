@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "14143d4d-dfcd-4ec7-b00b-d1f8df6c3cbf",
+      "state": "completed",
+      "source": {
+        "kind": "message",
+        "sourceId": "1527343335541313666",
+        "userId": "1265417775296413747",
+        "guildId": "1512804129976877280",
+        "channelId": "1516912625806475494",
+        "threadId": null,
+        "trigger": "followup"
+      },
+      "payload": {
+        "rawText": "你好",
+        "promptText": "Discord route: 1512804129976877280__1516912625806475494__root\n\nRequester: Wylan Man (1265417775296413747)\n\nTrigger: followup\n\nGuild: 1512804129976877280\n\nChannel: 1516912625806475494\n\nUser request:\n你好",
+        "attachments": []
+      }
+    }
+  ]
+}

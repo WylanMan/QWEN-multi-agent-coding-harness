@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notes</title>
+<style>
+/* ============================================================
+   Reset & Base
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  line-height: 1.6;
+}
+input, textarea, button { font-family: inherit; font-size: inherit; color: inherit; }
+
+/* ============================================================
+   Layout
+   ============================================================ */
+#app {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 24px 16px;
+  min-height: 100vh;
+}
+
+/* ============================================================
+   List View
+   ============================================================ */
+.list-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.list-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #e0e0e0;
+  margin-right: auto;
+}
+.search-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 100%;
+}
+@media (min-width: 640px) {
+  .search-wrapper { flex: 0 1 280px; }
+}
+.search-wrapper input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid #2a2a4a;
+  border-radius: 8px;
+  background: #16213e;
+  color: #e0e0e0;
+  outline: none;
+  font-size: 14px;
+}
+.search-wrapper input:focus {
+  border-color: #0f3460;
+}
+.search-wrapper input::placeholder { color: #666; }
+.clear-search {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+}
+.clear-search:hover { color: #e0e0e0; }
+
+.btn-primary {
+  background: #e94560;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-primary:hover { background: #d63851; }
+
+.search-results {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 16px;
+}
+
+.notes-grid {
+  display: grid;
+  gap: 12px;
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+}
+.empty-state p { font-size: 16px; margin-bottom: 8px; }
+.empty-state .sub { font-size: 13px; color: #555; }
+
+/* Note card */
+.note-card {
+  background: #16213e;
+  border-radius: 10px;
+  padding: 16px 20px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: border-color 0.15s;
+}
+.note-card:hover { border-color: #0f3460; }
+.note-card h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #e0e0e0;
+}
+.note-card .preview {
+  font-size: 13px;
+  color: #999;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.note-card .meta {
+  font-size: 11px;
+  color: #555;
+  margin-top: 8px;
+}
+
+/* ============================================================
+   View Note
+   ============================================================ */
+.view-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.view-header .back-btn {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+.view-header .back-btn:hover { background: #16213e; color: #e0e0e0; }
+.view-header .spacer { flex: 1; }
+
+.btn-secondary {
+  background: #0f3460;
+  color: #e0e0e0;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.btn-secondary:hover { background: #1a4a7a; }
+
+.btn-danger {
+  background: transparent;
+  color: #e94560;
+  border: 1px solid #e94560;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.btn-danger:hover { background: #e94560; color: #fff; }
+
+.note-display h1 {
+  font-size: 26px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: #e0e0e0;
+}
+.note-display .rendered {
+  font-size: 15px;
+  line-height: 1.8;
+  color: #d0d0d0;
+}
+.note-display .timestamps {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #2a2a4a;
+  font-size: 12px;
+  color: #555;
+}
+
+/* ============================================================
+   Edit Note
+   ============================================================ */
+.edit-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+@media (min-width: 768px) {
+  .edit-container { grid-template-columns: 1fr 1fr; }
+}
+.edit-panel, .preview-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.preview-panel h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.edit-panel input,
+.edit-panel textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #2a2a4a;
+  border-radius: 8px;
+  background: #16213e;
+  color: #e0e0e0;
+  outline: none;
+}
+.edit-panel input:focus,
+.edit-panel textarea:focus {
+  border-color: #0f3460;
+}
+.edit-panel input::placeholder,
+.edit-panel textarea::placeholder { color: #555; }
+.edit-panel textarea {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  resize: vertical;
+  min-height: 200px;
+}
+
+.live-preview {
+  background: #16213e;
+  border: 1px solid #2a2a4a;
+  border-radius: 8px;
+  padding: 12px 14px;
+  min-height: 200px;
+  max-height: 400px;
+  overflow-y: auto;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #d0d0d0;
+}
+.live-preview:empty::before {
+  content: 'Preview';
+  color: #555;
+  font-style: italic;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+/* ============================================================
+   Delete Confirmation Overlay
+   ============================================================ */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.confirm-dialog {
+  background: #16213e;
+  border-radius: 12px;
+  padding: 28px 32px;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+}
+.confirm-dialog p { margin-bottom: 12px; font-size: 15px; }
+.confirm-dialog .warning { font-size: 13px; color: #e94560; }
+.confirm-dialog .dialog-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+/* ============================================================
+   Error View
+   ============================================================ */
+.error-view {
+  text-align: center;
+  padding: 80px 20px;
+}
+.error-view h2 { font-size: 22px; margin-bottom: 12px; color: #e94560; }
+.error-view p { color: #888; margin-bottom: 24px; }
+
+/* ============================================================
+   Markdown rendered styles
+   ============================================================ */
+.rendered h1, .rendered h2, .rendered h3,
+.live-preview h1, .live-preview h2, .live-preview h3 {
+  margin: 20px 0 10px;
+  color: #e0e0e0;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.rendered h1, .live-preview h1 { font-size: 22px; }
+.rendered h2, .live-preview h2 { font-size: 18px; }
+.rendered h3, .live-preview h3 { font-size: 16px; }
+.rendered :first-child, .live-preview :first-child { margin-top: 0; }
+
+.rendered p, .live-preview p { margin: 0 0 12px; }
+.rendered p:last-child, .live-preview p:last-child { margin-bottom: 0; }
+
+.rendered strong, .live-preview strong { color: #e0e0e0; font-weight: 600; }
+.rendered em, .live-preview em { font-style: italic; }
+
+.rendered code, .live-preview code {
+  background: #0d1117;
+  color: #c9d1d9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 13px;
+}
+.rendered pre, .live-preview pre {
+  background: #0d1117;
+  border-radius: 8px;
+  padding: 16px;
+  overflow-x: auto;
+  margin: 12px 0;
+}
+.rendered pre code, .live-preview pre code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  display: block;
+  line-height: 1.5;
+}
+
+.rendered a, .live-preview a { color: #4fc3f7; text-decoration: none; }
+.rendered a:hover, .live-preview a:hover { text-decoration: underline; }
+
+.rendered blockquote, .live-preview blockquote {
+  border-left: 4px solid #0f3460;
+  padding: 8px 16px;
+  margin: 12px 0;
+  color: #aaa;
+  background: rgba(15,52,96,0.15);
+  border-radius: 0 6px 6px 0;
+}
+
+.rendered ul, .live-preview ul {
+  margin: 8px 0;
+  padding-left: 24px;
+}
+.rendered li, .live-preview li { margin: 4px 0; }
+
+.rendered hr, .live-preview hr {
+  border: none;
+  border-top: 1px solid #2a2a4a;
+  margin: 20px 0;
+}
+
+/* ============================================================
+   Responsive tweaks
+   ============================================================ */
+@media (max-width: 480px) {
+  #app { padding: 16px 12px; }
+  .list-header h1 { font-size: 22px; }
+  .note-display h1 { font-size: 20px; }
+  .view-header { gap: 6px; }
+  .confirm-dialog { padding: 24px 20px; }
+}
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+// ============================================================
+// App Namespace — Markdown Note-Taking App
+// Single HTML file, no frameworks, no external dependencies.
+// ============================================================
+window.App = {};
+
+// ============================================================
+// State
+// ============================================================
+/**
+ * Application state object.
+ * @type {Object}
+ * @property {"list"|"view"|"edit"} currentView - Current view name
+ * @property {string|null} currentNoteId - ID of the note being viewed/edited
+ * @property {string} searchQuery - Current search filter text
+ * @property {string|null} pendingDeleteId - Note ID pending delete confirmation
+ */
+App.state = {
+  currentView: 'list',
+  currentNoteId: null,
+  searchQuery: '',
+  pendingDeleteId: null
+};
+
+// ============================================================
+// Store Module — data layer + localStorage
+// ============================================================
+/**
+ * @typedef {Object} Note
+ * @property {string} id - Unique identifier
+ * @property {string} title - Note title
+ * @property {string} content - Raw markdown content
+ * @property {string} createdAt - ISO timestamp
+ * @property {string} updatedAt - ISO timestamp
+ */
+
+App.store = {
+  /** @type {Note[]} */
+  notes: [],
+
+  /** @type {string} */
+  STORAGE_KEY: 'markdown-notes',
+
+  /**
+   * Load notes from localStorage. Resets on corruption.
+   */
+  loadFromStorage: function () {
+    try {
+      var raw = localStorage.getItem(this.STORAGE_KEY);
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          this.notes = parsed;
+          return;
+        }
+      }
+      this.notes = [];
+    } catch (e) {
+      this.notes = [];
+      localStorage.removeItem(this.STORAGE_KEY);
+    }
+  },
+
+  /**
+   * Save current notes array to localStorage.
+   * Alerts user on quota exceeded.
+   */
+  saveToStorage: function () {
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.notes));
+    } catch (e) {
+      if (e.name === 'QuotaExceededError' || e.code === 22) {
+        alert('Storage quota exceeded. Please delete some notes to free up space.');
+      } else {
+        throw e;
+      }
+    }
+  },
+
+  /**
+   * Get all notes, newest first.
+   * @returns {Note[]}
+   */
+  getAllNotes: function () {
+    return this.notes.slice().sort(function (a, b) {
+      return new Date(b.updatedAt) - new Date(a.updatedAt);
+    });
+  },
+
+  /**
+   * Get a single note by id.
+   * @param {string} id
+   * @returns {Note|undefined}
+   */
+  getNote: function (id) {
+    for (var i = 0; i < this.notes.length; i++) {
+      if (this.notes[i].id === id) return this.notes[i];
+    }
+    return undefined;
+  },
+
+  /**
+   * Save a note (create or update). Generates id if new.
+   * @param {Object} note - Note data (may include id for update)
+   * @param {string} [note.id]
+   * @param {string} [note.title]
+   * @param {string} [note.content]
+   * @returns {Note} The saved note
+   */
+  saveNote: function (note) {
+    if (!note.title && !note.content) {
+      throw new Error('Cannot save an empty note.');
+    }
+    if (!note.title) note.title = 'Untitled';
+
+    var existing = note.id ? this.getNote(note.id) : null;
+    if (existing) {
+      existing.title = note.title;
+      existing.content = note.content || '';
+      existing.updatedAt = new Date().toISOString();
+      this.saveToStorage();
+      return existing;
+    } else {
+      var newNote = {
+        id: this.generateId(),
+        title: note.title || 'Untitled',
+        content: note.content || '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      this.notes.push(newNote);
+      this.saveToStorage();
+      return newNote;
+    }
+  },
+
+  /**
+   * Delete a note by id.
+   * @param {string} id
+   */
+  deleteNote: function (id) {
+    var idx = -1;
+    for (var i = 0; i < this.notes.length; i++) {
+      if (this.notes[i].id === id) { idx = i; break; }
+    }
+    if (idx !== -1) {
+      this.notes.splice(idx, 1);
+      this.saveToStorage();
+    }
+  },
+
+  /**
+   * Generate a unique note id.
+   * @returns {string}
+   */
+  generateId: function () {
+    var ts = Date.now().toString(36);
+    var rand = Math.random().toString(36).substring(2, 8);
+    return ts + '-' + rand;
+  },
+
+  /**
+   * Create a new note with the given title and content.
+   * @param {string} title
+   * @param {string} content
+   * @returns {Note}
+   */
+  createNote: function (title, content) {
+    return this.saveNote({ title: title, content: content });
+  },
+
+  /**
+   * Update an existing note with partial data.
+   * @param {string} id
+   * @param {Partial<Note>} updates
+   * @returns {Note|null}
+   */
+  updateNote: function (id, updates) {
+    var note = this.getNote(id);
+    if (!note) return null;
+    if (updates.title !== undefined) note.title = updates.title;
+    if (updates.content !== undefined) note.content = updates.content;
+    note.updatedAt = new Date().toISOString();
+    this.saveToStorage();
+    return note;
+  }
+};
+
+// ============================================================
+// Markdown Parser
+//
+// SUPPORTED SYNTAX (only these — per scope trim):
+//   # ## ###       -> headings
+//   **bold**       -> <strong>
+//   *italic*       -> <em>
+//   `code`         -> <code> (inline)
+//   ```...```      -> <pre><code> (fenced code block)
+//   [text](url)    -> <a href target=_blank rel=noopener>
+//   > text         -> <blockquote>
+//   ---            -> <hr>
+//   - item         -> <ul><li> (consecutive items grouped)
+//   blank line     -> paragraph break
+//
+// UNSUPPORTED (will appear as raw text):
+//   ####+ headings, ~~strikethrough~~, ordered lists,
+//   [ ] checkboxes, tables, footnotes, images, reference-style links,
+//   inline HTML, automatic links, task lists, definition lists,
+//   fenced code with language hint, blockquotes with nested elements.
+// ============================================================ */
+App.markdown = {
+  /**
+   * Escape HTML special characters to prevent XSS.
+   * @param {string} str
+   * @returns {string}
+   */
+  escapeHtml: function (str) {
+    var map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    };
+    return str.replace(/[&<>"']/g, function (ch) { return map[ch]; });
+  },
+
+  /**
+   * Parse inline markdown elements (bold, italic, code, links).
+   * Call this AFTER HTML escaping.
+   * @param {string} text - HTML-escaped text with code block placeholders preserved
+   * @returns {string} HTML with inline elements rendered
+   */
+  parseInline: function (text) {
+    // 1. Protect inline code `...` from bold/italic parsing
+    var codePlaceholders = [];
+    var idx = 0;
+    text = text.replace(/`([^`]+)`/g, function (match, code) {
+      var key = '%%IC_' + idx + '%%';
+      codePlaceholders.push(code);
+      idx++;
+      return key;
+    });
+
+    // 2. Bold+italic ***...***
+    text = text.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+
+    // 3. Bold **...**
+    text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+    // 4. Italic *...*
+    text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+    // 5. Links [text](url)
+    text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+
+    // 6. Restore inline code
+    for (var i = 0; i < codePlaceholders.length; i++) {
+      text = text.replace('%%IC_' + i + '%%', '<code>' + codePlaceholders[i] + '</code>');
+    }
+
+    return text;
+  },
+
+  /**
+   * Render markdown string to safe HTML.
+   * @param {string} md - Raw markdown content
+   * @returns {string} Safe HTML
+   */
+  renderMarkdown: function (md) {
+    if (!md) return '';
+
+    // Step 1: HTML escape to prevent XSS
+    var escaped = this.escapeHtml(md);
+
+    // Step 2: Process fenced code blocks (```...```) — preserve verbatim
+    var codeBlocks = [];
+    var cbIdx = 0;
+    var processed = escaped.replace(/```([\s\S]*?)```/g, function (match, code) {
+      var key = '%%CB_' + cbIdx + '%%';
+      codeBlocks.push(code);
+      cbIdx++;
+      return key;
+    });
+
+    // Step 3: Block-level processing
+    var lines = processed.split('\n');
+    var result = [];
+    var i = 0;
+
+    while (i < lines.length) {
+      var line = lines[i];
+      var trimmed = line.trim();
+
+      // Fenced code block placeholder — output as-is
+      if (/^%%CB_\d+%%$/.test(trimmed)) {
+        result.push(line);
+        i++;
+        continue;
+      }
+
+      // Headings # ## ###
+      var headingMatch = line.match(/^(#{1,3})\s+(.+)/);
+      if (headingMatch) {
+        var level = headingMatch[1].length;
+        var tag = level === 1 ? 'h1' : level === 2 ? 'h2' : 'h3';
+        result.push('<' + tag + '>' + this.parseInline(headingMatch[2]) + '</' + tag + '>');
+        i++;
+        continue;
+      }
+
+      // Horizontal rule ---
+      if (/^-{3,}$/.test(trimmed)) {
+        result.push('<hr>');
+        i++;
+        continue;
+      }
+
+      // Blockquote > text (collect consecutive)
+      if (/^>\s?/.test(line)) {
+        var quotes = [];
+        while (i < lines.length && /^>\s?/.test(lines[i])) {
+          quotes.push(lines[i].replace(/^>\s?/, ''));
+          i++;
+        }
+        var quoteContent = [];
+        for (var qi = 0; qi < quotes.length; qi++) {
+          if (quotes[qi].trim()) {
+            quoteContent.push(this.parseInline(quotes[qi].trim()));
+          }
+        }
+        result.push('<blockquote>' + quoteContent.join('<br>') + '</blockquote>');
+        continue;
+      }
+
+      // Unordered list - item (collect consecutive)
+      if (/^-\s+/.test(line)) {
+        var items = [];
+        while (i < lines.length && /^-\s+/.test(lines[i])) {
+          items.push(lines[i].replace(/^-\s+/, ''));
+          i++;
+        }
+        var listItems = [];
+        for (var li = 0; li < items.length; li++) {
+          listItems.push('<li>' + this.parseInline(items[li].trim()) + '</li>');
+        }
+        result.push('<ul>' + listItems.join('') + '</ul>');
+        continue;
+      }
+
+      // Paragraph: collect text until blank line or block-level element
+      if (trimmed !== '') {
+        var paraLines = [];
+        while (i < lines.length) {
+          var l = lines[i];
+          var t = l.trim();
+          // Stop at blank line
+          if (t === '') break;
+          // Stop at block-level elements (unless they are code block placeholders)
+          if (/^%%CB_\d+%%$/.test(t)) { paraLines.push(l); i++; continue; }
+          if (/^#{1,3}\s/.test(l)) break;
+          if (/^-{3,}$/.test(t)) break;
+          if (/^>\s?/.test(l)) break;
+          if (/^-\s+/.test(l)) break;
+          paraLines.push(l);
+          i++;
+        }
+        var paraText = paraLines.join(' ');
+        if (paraText.trim()) {
+          result.push('<p>' + this.parseInline(paraText.trim()) + '</p>');
+        }
+        continue;
+      }
+
+      i++; // skip blank line
+    }
+
+    // Step 4: Restore fenced code blocks
+    var html = result.join('\n');
+    html = html.replace(/%%CB_(\d+)%%/g, function (match, idx) {
+      return '<pre><code>' + codeBlocks[parseInt(idx, 10)] + '</code></pre>';
+    });
+
+    return html;
+  }
+};
+
+// ============================================================
+// Router — view state machine
+// ============================================================
+App.router = {
+  /**
+   * Navigate to a view.
+   * @param {"list"|"view"|"edit"} view - Target view name
+   * @param {string} [noteId] - Note ID for view/edit states
+   */
+  navigate: function (view, noteId) {
+    App.state.currentView = view;
+    App.state.currentNoteId = noteId || null;
+    App.renderer.render();
+  }
+};
+
+// ============================================================
+// Renderer — DOM generation
+// ============================================================
+App.renderer = {
+  /**
+   * Full re-render of #app based on App.state.currentView.
+   */
+  render: function () {
+    var view = App.state.currentView;
+    if (view === 'list') {
+      this.renderList(App.state.searchQuery);
+    } else if (view === 'view') {
+      this.renderView(App.state.currentNoteId);
+    } else if (view === 'edit') {
+      this.renderEdit(App.state.currentNoteId);
+    } else {
+      this.renderList('');
+    }
+  },
+
+  /**
+   * Format an ISO date string for display.
+   * @param {string} iso
+   * @returns {string}
+   */
+  formatDate: function (iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var month = months[d.getMonth()];
+    var day = d.getDate();
+    var year = d.getFullYear();
+    var hour = d.getHours();
+    var min = d.getMinutes();
+    var ampm = hour >= 12 ? 'PM' : 'AM';
+    hour = hour % 12 || 12;
+    min = min < 10 ? '0' + min : min;
+    return month + ' ' + day + ', ' + year + ' ' + hour + ':' + min + ' ' + ampm;
+  },
+
+  /**
+   * Strip HTML tags from a string for plain-text preview.
+   * @param {string} html
+   * @returns {string}
+   */
+  stripHtml: function (html) {
+    return html.replace(/<[^>]*>/g, '');
+  },
+
+  /**
+   * Render the list view with search.
+   * @param {string} [filter] - Search filter text
+   */
+  renderList: function (filter) {
+    filter = filter || '';
+    var notes = App.store.getAllNotes();
+
+    // Apply search filter on title AND content
+    if (filter) {
+      var lowerFilter = filter.toLowerCase();
+      var filtered = [];
+      for (var i = 0; i < notes.length; i++) {
+        var n = notes[i];
+        if (n.title.toLowerCase().indexOf(lowerFilter) !== -1 ||
+            n.content.toLowerCase().indexOf(lowerFilter) !== -1) {
+          filtered.push(n);
+        }
+      }
+      notes = filtered;
+    }
+
+    var searchHtml = '';
+    searchHtml += '<div class="list-header">';
+    searchHtml += '  <h1>Notes</h1>';
+    searchHtml += '  <div class="search-wrapper">';
+    searchHtml += '    <input type="text" placeholder="Search notes..." data-action="search" value="' + this.escapeAttr(filter) + '">';
+    if (filter) {
+      searchHtml += '    <button class="clear-search" data-action="clear-search" title="Clear search">&times;</button>';
+    }
+    searchHtml += '  </div>';
+    searchHtml += '  <button class="btn-primary" data-action="create-note">+ New Note</button>';
+    searchHtml += '</div>';
+
+    if (filter) {
+      searchHtml += '<div class="search-results">' + notes.length + ' result' + (notes.length !== 1 ? 's' : '') + '</div>';
+    }
+
+    if (notes.length === 0) {
+      if (filter) {
+        searchHtml += '<div class="empty-state"><p>No notes match "' + this.escapeAttr(filter) + '"</p><p class="sub">Try a different search term</p></div>';
+      } else {
+        searchHtml += '<div class="empty-state"><p>No notes yet. Create your first note!</p><p class="sub">Click "+ New Note" to get started.</p></div>';
+      }
+    } else {
+      searchHtml += '<div class="notes-grid">';
+      for (var j = 0; j < notes.length; j++) {
+        var note = notes[j];
+        // Generate plain text preview (strip markdown-ish content)
+        var plainContent = note.content
+          ? this.stripHtml(App.markdown.renderMarkdown(note.content))
+          : '';
+        var preview = plainContent.substring(0, 100);
+        if (plainContent.length > 100) preview += '...';
+
+        searchHtml += '<div class="note-card" data-action="view-note" data-id="' + note.id + '">';
+        searchHtml += '  <h3>' + this.escapeAttr(note.title || 'Untitled') + '</h3>';
+        searchHtml += '  <div class="preview">' + this.escapeAttr(preview) + '</div>';
+        searchHtml += '  <div class="meta">' + this.formatDate(note.updatedAt) + '</div>';
+        searchHtml += '</div>';
+      }
+      searchHtml += '</div>';
+    }
+
+    document.getElementById('app').innerHTML = '<div data-view="list">' + searchHtml + '</div>';
+  },
+
+  /**
+   * Escape text for use in HTML attributes.
+   * @param {string} str
+   * @returns {string}
+   */
+  escapeAttr: function (str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  },
+
+  /**
+   * Render the single note view.
+   * @param {string} id - Note ID to display
+   */
+  renderView: function (id) {
+    var note = App.store.getNote(id);
+    if (!note) {
+      // Note not found — show error view
+      var errorHtml = '';
+      errorHtml += '<div data-view="error" class="error-view">';
+      errorHtml += '  <h2>Note Not Found</h2>';
+      errorHtml += '  <p>The note you are looking for does not exist or has been deleted.</p>';
+      errorHtml += '  <button class="btn-primary" data-action="back-to-list">&larr; Back to Notes</button>';
+      errorHtml += '</div>';
+      document.getElementById('app').innerHTML = errorHtml;
+      return;
+    }
+
+    var renderedContent = App.markdown.renderMarkdown(note.content || '');
+
+    var html = '';
+    html += '<div data-view="view">';
+    html += '  <div class="view-header">';
+    html += '    <button class="back-btn" data-action="back-to-list">&larr; Back</button>';
+    html += '    <span class="spacer"></span>';
+    html += '    <button class="btn-secondary" data-action="edit-note" data-id="' + note.id + '">Edit</button>';
+    html += '    <button class="btn-danger" data-action="delete-note" data-id="' + note.id + '">Delete</button>';
+    html += '  </div>';
+    html += '  <div class="note-display">';
+    html += '    <h1>' + this.escapeAttr(note.title || 'Untitled') + '</h1>';
+    html += '    <div class="rendered">' + renderedContent + '</div>';
+    html += '    <div class="timestamps">';
+    html += '      Created: ' + this.formatDate(note.createdAt);
+    if (note.updatedAt !== note.createdAt) {
+      html += ' &middot; Updated: ' + this.formatDate(note.updatedAt);
+    }
+    html += '    </div>';
+    html += '  </div>';
+    html += '</div>';
+
+    document.getElementById('app').innerHTML = html;
+  },
+
+  /**
+   * Render the edit/create note form.
+   * @param {string} [id] - Note ID for editing, omit for create mode
+   */
+  renderEdit: function (id) {
+    var note = id ? App.store.getNote(id) : null;
+    var title = note ? note.title : '';
+    var content = note ? note.content : '';
+    var renderedPreview = App.markdown.renderMarkdown(content || '');
+
+    var html = '';
+    html += '<div data-view="edit">';
+    html += '  <div class="edit-container">';
+    html += '    <div class="edit-panel">';
+    html += '      <input type="text" id="edit-title" placeholder="Note title" data-action="title-input" value="' + this.escapeAttr(title) + '">';
+    html += '      <textarea id="edit-content" rows="12" data-action="content-input" placeholder="Write your note in markdown...">' + this.escapeAttr(content) + '</textarea>';
+    html += '    </div>';
+    html += '    <div class="preview-panel">';
+    html += '      <h3>Preview</h3>';
+    html += '      <div class="live-preview" data-action="live-preview">' + renderedPreview + '</div>';
+    html += '    </div>';
+    html += '  </div>';
+    html += '  <div class="edit-actions">';
+    html += '    <button class="btn-primary" data-action="save-note">Save</button>';
+    html += '    <button class="btn-secondary" data-action="cancel-edit">Cancel</button>';
+    html += '  </div>';
+    html += '</div>';
+
+    document.getElementById('app').innerHTML = html;
+
+    // Focus the title input for new notes
+    if (!id) {
+      var titleInput = document.getElementById('edit-title');
+      if (titleInput) titleInput.focus();
+    }
+  }
+};
+
+// ============================================================
+// Handlers — event delegation
+// ============================================================
+App.handlers = {
+  /**
+   * Initialize event delegation on #app for click and input events.
+   */
+  init: function () {
+    var appEl = document.getElementById('app');
+
+    // Click delegation
+    appEl.addEventListener('click', function (e) {
+      var target = e.target.closest('[data-action]');
+      if (!target) return;
+      var action = target.getAttribute('data-action');
+      var id = target.getAttribute('data-id');
+
+      switch (action) {
+        case 'create-note':
+          App.handlers.handleCreateNote();
+          break;
+        case 'view-note':
+          if (id) App.handlers.handleViewNote(id);
+          break;
+        case 'edit-note':
+          if (id) App.handlers.handleEditNote(id);
+          break;
+        case 'delete-note':
+          if (id) App.handlers.handleDeleteNote(id);
+          break;
+        case 'delete-confirm':
+          if (id) App.handlers.handleDeleteConfirm(id);
+          break;
+        case 'delete-cancel':
+          App.handlers.handleDeleteCancel();
+          break;
+        case 'save-note':
+          App.handlers.handleSaveNote();
+          break;
+        case 'cancel-edit':
+          App.handlers.handleCancelEdit();
+          break;
+        case 'clear-search':
+          App.handlers.handleClearSearch();
+          break;
+        case 'back-to-list':
+          App.handlers.handleBackToList();
+          break;
+      }
+    });
+
+    // Input delegation (search, title, content)
+    appEl.addEventListener('input', function (e) {
+      var target = e.target.closest('[data-action]');
+      if (!target) return;
+      var action = target.getAttribute('data-action');
+
+      if (action === 'search') {
+        App.handlers.handleSearchNotes(target.value);
+      } else if (action === 'content-input') {
+        App.handlers.handleLivePreview(target.value);
+      }
+    });
+  },
+
+  /**
+   * Handle creating a new note — navigate to edit with no id.
+   */
+  handleCreateNote: function () {
+    App.state.searchQuery = '';
+    App.router.navigate('edit');
+  },
+
+  /**
+   * Handle saving a note (create or update).
+   * Reads title and content from the edit form.
+   */
+  handleSaveNote: function () {
+    var titleInput = document.getElementById('edit-title');
+    var contentInput = document.getElementById('edit-content');
+    if (!titleInput || !contentInput) return;
+
+    var title = titleInput.value.trim();
+    var content = contentInput.value;
+
+    if (!title && !content) {
+      alert('Cannot save an empty note.');
+      return;
+    }
+
+    // If content is empty, ask for confirmation
+    if (!content || !content.trim()) {
+      if (!confirm('Save empty note?')) return;
+    }
+
+    var noteId = App.state.currentNoteId;
+    var savedNote;
+
+    try {
+      if (noteId && App.store.getNote(noteId)) {
+        savedNote = App.store.updateNote(noteId, { title: title || 'Untitled', content: content });
+      } else {
+        savedNote = App.store.createNote(title, content);
+      }
+    } catch (e) {
+      alert('Error saving note: ' + e.message);
+      return;
+    }
+
+    if (savedNote) {
+      App.state.searchQuery = '';
+      App.router.navigate('view', savedNote.id);
+    }
+  },
+
+  /**
+   * Handle delete button click — show confirmation overlay.
+   * @param {string} id
+   */
+  handleDeleteNote: function (id) {
+    App.state.pendingDeleteId = id;
+    var note = App.store.getNote(id);
+    var noteTitle = note ? (note.title || 'Untitled') : 'this note';
+
+    var overlayHtml = '';
+    overlayHtml += '<div class="overlay" data-action="overlay-bg">';
+    overlayHtml += '  <div class="confirm-dialog">';
+    overlayHtml += '    <p>Are you sure you want to delete <strong>"' + App.renderer.escapeAttr(noteTitle) + '"</strong>?</p>';
+    overlayHtml += '    <p class="warning">This action cannot be undone.</p>';
+    overlayHtml += '    <div class="dialog-actions">';
+    overlayHtml += '      <button class="btn-danger" data-action="delete-confirm" data-id="' + id + '">Delete</button>';
+    overlayHtml += '      <button class="btn-secondary" data-action="delete-cancel">Cancel</button>';
+    overlayHtml += '    </div>';
+    overlayHtml += '  </div>';
+    overlayHtml += '</div>';
+
+    // Append overlay to body
+    var appEl = document.getElementById('app');
+    var existingOverlay = document.querySelector('.overlay');
+    if (existingOverlay) existingOverlay.remove();
+
+    var div = document.createElement('div');
+    div.innerHTML = overlayHtml;
+    appEl.appendChild(div.firstElementChild);
+
+    // Click on overlay background closes it
+    document.querySelector('.overlay').addEventListener('click', function (e) {
+      if (e.target.getAttribute('data-action') === 'overlay-bg') {
+        App.handlers.handleDeleteCancel();
+      }
+    });
+  },
+
+  /**
+   * Handle confirmed delete — remove note and go to list.
+   * @param {string} id
+   */
+  handleDeleteConfirm: function (id) {
+    App.store.deleteNote(id);
+    App.state.pendingDeleteId = null;
+    var overlay = document.querySelector('.overlay');
+    if (overlay) overlay.remove();
+    App.state.searchQuery = '';
+    App.router.navigate('list');
+  },
+
+  /**
+   * Handle cancel delete — remove overlay.
+   */
+  handleDeleteCancel: function () {
+    App.state.pendingDeleteId = null;
+    var overlay = document.querySelector('.overlay');
+    if (overlay) overlay.remove();
+  },
+
+  /**
+   * Handle viewing a note.
+   * @param {string} id
+   */
+  handleViewNote: function (id) {
+    App.state.searchQuery = '';
+    App.router.navigate('view', id);
+  },
+
+  /**
+   * Handle editing a note.
+   * @param {string} id
+   */
+  handleEditNote: function (id) {
+    App.state.searchQuery = '';
+    App.router.navigate('edit', id);
+  },
+
+  /**
+   * Handle search input.
+   * @param {string} query
+   */
+  handleSearchNotes: function (query) {
+    App.state.searchQuery = query;
+    App.renderer.renderList(query);
+  },
+
+  /**
+   * Handle cancelling edit mode.
+   */
+  handleCancelEdit: function () {
+    var noteId = App.state.currentNoteId;
+    App.state.searchQuery = '';
+    if (noteId && App.store.getNote(noteId)) {
+      App.router.navigate('view', noteId);
+    } else {
+      App.router.navigate('list');
+    }
+  },
+
+  /**
+   * Handle clearing the search filter.
+   */
+  handleClearSearch: function () {
+    App.state.searchQuery = '';
+    App.renderer.renderList('');
+  },
+
+  /**
+   * Handle navigating back to the list.
+   */
+  handleBackToList: function () {
+    App.state.searchQuery = '';
+    App.router.navigate('list');
+  },
+
+  /**
+   * Handle live preview of markdown as user types.
+   * @param {string} content
+   */
+  handleLivePreview: function (content) {
+    var previewEl = document.querySelector('[data-action="live-preview"]');
+    if (previewEl) {
+      var rendered = App.markdown.renderMarkdown(content || '');
+      previewEl.innerHTML = rendered || '';
+    }
+  }
+};
+
+// ============================================================
+// Bootstrap
+// ============================================================
+
+/**
+ * Initialize the application: load data from storage, attach
+ * event handlers, and navigate to the default view.
+ */
+App.init = function () {
+  App.store.loadFromStorage();
+  App.handlers.init();
+  App.router.navigate('list');
+};
+
+// Kick off when DOM is ready
+document.addEventListener('DOMContentLoaded', App.init);
+</script>
+
+</body>
+</html>

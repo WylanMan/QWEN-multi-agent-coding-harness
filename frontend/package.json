@@ -1,0 +1,20 @@
+{
+  "name": "pi-frontend",
+  "version": "0.1.0",
+  "description": "Browser-based frontend for pi coding agent - multi-session container",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "@chenglou/pretext": "^0.0.8",
+    "@earendil-works/pi-coding-agent": "*",
+    "discord.js": "^14.27.0",
+    "esbuild": "^0.28.1",
+    "express": "^4.21.0",
+    "tiktoken": "^1.0.22",
+    "ws": "^8.18.0"
+  }
+}

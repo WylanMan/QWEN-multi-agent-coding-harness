@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "botToken": "YOUR_BOT_TOKEN_HERE",
+  "applicationId": "1526318141800583259",
+  "allowedGuildIds": [
+    "1512804129976877280"
+  ],
+  "adminUserIds": [],
+  "dmAllowlistUserIds": [],
+  "commandName": "pi",
+  "registerCommandsGlobally": false,
+  "syncCommandsOnStart": true,
+  "workspaceMode": "dedicated",
+  "sharedExecutionRoot": "/home/cman/.pi/agent/pi-discord/shared-workspace",
+  "routeOverrides": {},
+  "allowProjectExtensions": true,
+  "enableImageInput": true,
+  "enableDetailsThreads": true,
+  "globalConcurrency": 2,
+  "queueLeaseMs": 90000,
+  "primaryFlushMs": 1200,
+  "defaultThinkingLevel": "medium"
+}

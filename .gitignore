@@ -1,0 +1,30 @@
+# Secrets & API keys
+auth.json
+*.env
+.env.*
+services/discord/config.json
+
+# Sessions (contain conversation data, may have tokens)
+agent/sessions/
+agent/sessions-index.json
+
+# Internal cache
+agent/models-store.json
+
+# Node modules
+node_modules/
+agent/npm/node_modules/
+frontend/node_modules/
+agent/npm/package-lock.json
+
+# Workspace artifacts
+harness/workspace/*/node_modules/
+services/searxng/data/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
